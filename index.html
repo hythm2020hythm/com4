@@ -1,0 +1,515 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz App</title>
+    <style>
+        body {
+            background-color: black;
+            color: white;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        #score-counter {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px;
+            background-color: #333;
+            border-bottom-right-radius: 10px;
+            color: white;
+            z-index: 999;
+        }
+
+        #quiz-container {
+            max-width: 600px;
+            margin: auto;
+            padding: 60px 20px 20px; /* تم تعديل ال padding ليضمن عدم تغطية الصورة */
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            background-color: rgba(255, 255, 255, 0.1);
+            position: relative; /* تمت إضافة position: relative; للسماح لـ #score-counter بالتحكم فيه */
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            color: white;
+            background-color: #2196F3;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        button {
+            background-color: #2196F3;
+            color: white;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0c0c0c;
+        }
+
+        #timer {
+            margin-bottom: 10px;
+        }
+
+        #result-container {
+            margin-top: 20px;
+            display: none;
+        }
+
+        .result-text {
+            margin-bottom: 10px;
+        }
+
+        .correct {
+            background-color: green;
+            color: white;
+        }
+
+        .incorrect {
+            background-color: red;
+            color: white;
+        }
+
+        /* CSS for displaying images to fit the screen */
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="score-counter">Score: <span id="score">0</span></div>
+
+    <div id="quiz-container">
+        <img id="question-image" src="" alt="Question Image">
+        <div id="choices"></div>
+        <button onclick="checkAnswer()">Submit Answer</button>
+        <p id="timer"></p>
+    </div>
+
+    <div id="result-container">
+        <h2>Quiz Result</h2>
+        <p class="result-text" id="result"></p>
+        <div id="correct-answers"></div>
+        <button id="retryBtn" style="display: none;" onclick="retryQuiz()">Retry Quiz</button>
+    </div>
+
+    <script>
+        var currentQuestion = 0;
+        var score = 0;
+        var timeLeft = 600; // تحديد عدد الثواني
+        var timerInterval;
+
+        var quizData = [
+
+      
+        {
+                "imageSrc": "https://lists.office.com/Images/9188040d-6c67-4c5b-b112-36a304b66dad/00000000-0000-0000-0006-bffd20b2d784/T404B7CCL5XAW5F5WPOL0VW8SQ/7c6dbe39-9584-48ef-85a0-e45e97a2e32c",
+                "choices": ["النسخ", "الطباعة","الماسح الضوئى"],
+                "correctAnswer": "الطباعة"
+            },
+          
+  {
+                "imageSrc": "https://lists.office.com/Images/9188040d-6c67-4c5b-b112-36a304b66dad/00000000-0000-0000-0006-bffd20b2d784/T404B7CCL5XAW5F5WPOL0VW8SQ/1beababf-c1f1-48e2-bd76-b1e97482f530",
+                "choices": ["header", "footer"],
+                "correctAnswer": "header"
+            },
+          
+  {
+                "imageSrc": "https://lists.office.com/Images/9188040d-6c67-4c5b-b112-36a304b66dad/00000000-0000-0000-0006-bffd20b2d784/T404B7CCL5XAW5F5WPOL0VW8SQ/530abd48-3b87-4e20-b2f6-f9e714b93dc7",
+                "choices": ["header", "footer"],
+                "correctAnswer": "footer"
+            },
+          
+  {
+                "imageSrc": "https://lists.office.com/Images/9188040d-6c67-4c5b-b112-36a304b66dad/00000000-0000-0000-0006-bffd20b2d784/T404B7CCL5XAW5F5WPOL0VW8SQ/ec0be93e-8d91-4172-87da-112868acebb9",
+                "choices": ["اضافة رسم بيانى", "اضافة صورة","حذف الصورة"],
+                "correctAnswer": "اضافة رسم بيانى"
+            },
+          
+  {
+                "imageSrc": "https://lists.office.com/Images/9188040d-6c67-4c5b-b112-36a304b66dad/00000000-0000-0000-0006-bffd20b2d784/T404B7CCL5XAW5F5WPOL0VW8SQ/7c74317b-c5f4-4d9b-b8cd-780006b402ac",
+                "choices": ["اضافة رسم بيانى", "اضافة صورة","اضافة علامة مائية"],
+                "correctAnswer":  "اضافة صورة"
+            },
+          
+  {
+                "imageSrc": "https://lists.office.com/Images/9188040d-6c67-4c5b-b112-36a304b66dad/00000000-0000-0000-0006-bffd20b2d784/T404B7CCL5XAW5F5WPOL0VW8SQ/fc329163-140c-4a5d-82d5-4aab09b7d43d",
+                "choices": ["اضافة رسم بيانى", "اضافة صورة","اضافة علامة مائية"],
+                "correctAnswer": "اضافة علامة مائية"
+            },
+          
+  {
+                "imageSrc": "https://lists.office.com/Images/9188040d-6c67-4c5b-b112-36a304b66dad/00000000-0000-0000-0006-bffd20b2d784/T404B7CCL5XAW5F5WPOL0VW8SQ/065deaa6-db75-4e41-9731-974359f6cb94",
+                "choices": ["صح", "خطا"],
+                "correctAnswer": "صح"
+            },
+          
+  {
+                "imageSrc": "https://lists.office.com/Images/9188040d-6c67-4c5b-b112-36a304b66dad/00000000-0000-0000-0006-bffd20b2d784/T404B7CCL5XAW5F5WPOL0VW8SQ/bc05ccab-db4e-4800-839c-d56ddbe87700",
+                "choices": ["اضافة رسم بيانى", "اضافة جدول","اضافة علامة مائية"],
+                "correctAnswer": "اضافة جدول"
+            },
+          
+  {
+                "imageSrc": "https://lists.office.com/Images/9188040d-6c67-4c5b-b112-36a304b66dad/00000000-0000-0000-0006-bffd20b2d784/T404B7CCL5XAW5F5WPOL0VW8SQ/652c3aee-5059-4a40-8fd0-e099cb18c3a9",
+                "choices": ["صح", "خطا"],
+                "correctAnswer": "صح"
+            },
+            
+        {
+                question: " ماذا یطلق على ھذا الرمز @",
+                choices: ["قرد", "حلزونى", "عقرب"],
+                correctAnswer: "قرد"
+            },
+
+            {
+                question: " ماذا یطلق على ھذا الرمز عند الاغريق #",
+                choices: ["قرد", "حلزونى", "عقرب"],
+                correctAnswer: "عقرب"
+            },
+
+
+            {
+                question: "  منMs word ",
+                choices: ["المتصفحات", "البرمجيات", "الاعمال اليدوية"],
+                correctAnswer: "البرمجيات"
+            },
+            
+        {
+        question: "ما هو أفضل طريقة لكتابة موضوع البريد الإلكتروني",
+        choices: [
+            "كتابة موضوع طويل يشرح محتوى البريد الإلكتروني بالكامل.",
+            "كتابة موضوع قصير ومختصر يلخص محتوى البريد الإلكتروني.",
+            "استخدام كلمات كلها حروف كبيرة في الموضوع.",
+            "استخدام علامات تعجب في الموضوع."
+        ],
+        correctAnswer: "كتابة موضوع قصير ومختصر يلخص محتوى البريد الإلكتروني."
+    },
+    {
+        question: "ما هو أفضل طريقة لبدء البريد الإلكتروني ",
+        choices: [
+            "استخدام تحية عامة مثل 'عزيزي / عزيزتي'.",
+            "استخدام اسم المستلم في التحية.",
+            "كتابة جملة طويلة تشرح سبب إرسال البريد الإلكتروني.",
+            "كتابة جملة قصيرة تشرح سبب إرسال البريد الإلكتروني."
+        ],
+        correctAnswer: "استخدام اسم المستلم في التحية."
+    },
+    {
+        question: "ما هي أفضل طريقة لكتابة محتوى البريد الإلكتروني",
+        choices: [
+            "كتابة محتوى طويل جدًا.",
+            "كتابة محتوى قصير جدا.",
+            "استخدام لغة غير رسمية.",
+            "استخدام لغة مهذبة ومهنية."
+        ],
+        correctAnswer: "استخدام لغة مهذبة ومهنية."
+    },
+    {
+        question: "ما هي أفضل طريقة لإنهاء البريد الإلكتروني",
+        choices: [
+            "كتابة جملة طويلة تشكر المستلم على وقته.",
+            "كتابة جملة قصيرة تشكر المستلم على وقته.",
+            "استخدام تحية عامة مثل 'مع خالص التحيات'.",
+            "استخدام اسمك في التوقيع."
+        ],
+        correctAnswer: "استخدام تحية عامة مثل 'مع خالص التحيات'."
+    },
+    {
+        question: "ما هي أفضل طريقة لإرسال مرفقات مع البريد الإلكتروني",
+        choices: [
+            "إرسال مرفقات كبيرة جدًا.",
+            "إرسال مرفقات غير مرتبطة بمحتوى البريد الإلكتروني.",
+            "إرسال مرفقات في تنسيق لا يمكن للمستلم فتحه.",
+            "إرسال مرفقات صغيرة وذات صلة بمحتوى البريد الإلكتروني."
+        ],
+        correctAnswer: "إرسال مرفقات صغيرة وذات صلة بمحتوى البريد الإلكتروني."
+    },
+        {
+  question: "يعتمد مكان سطر التوثيق في برنامج الورد على نوع التوثيق الذي تستخدمه، فالتوثيق التلقائي يكون مكانه",
+  choices: ["اعلي الصفحة", "اسفل الصفحة", "يمين الصفحة", "يسار الصفحة","في اي مكان في الصفحة"],
+  correctAnswer: "اسفل الصفحة"
+},
+        
+        {
+        "question": "ما هو الفرق بين وحدة الإدخال ووحدة الإخراج ",
+        "choices": [
+            
+            "وحدة الإدخال تستقبل البيانات من المستخدم، بينما وحدة الإخراج تعرض البيانات على المستخدم.",
+            "وحدة الإدخال تحول البيانات إلى شكل يمكن للحاسوب الآلي فهمه، بينما وحدة الإخراج تحول البيانات إلى شكل يمكن للمستخدم فهمه.",
+            "كل ما سبق."
+        ],
+        "correctAnswer": "كل ما سبق."
+    },
+    {
+        "question": "ما هي بعض وحدات الإدخال الشائعة ",
+        "choices": [
+            "لوحة المفاتيح.",
+            "الفأرة.",
+            "الماسح الضوئي.",
+            "كل ما سبق."
+        ],
+        "correctAnswer": "كل ما سبق."
+    },
+    {
+        "question": "ما هي بعض وحدات الإخراج الشائعة ",
+        "choices": [
+            "الشاشة.",
+            "الطابعة.",
+            "السماعات.",
+            "كل ما سبق."
+        ],
+        "correctAnswer": "كل ما سبق."
+    },
+    {
+        "question": "ما هو نوع وحدة الإدخال التي تستخدم لإدخال النص ",
+        "choices": [
+            "لوحة المفاتيح.",
+            "الفأرة.",
+            "الماسح الضوئي.",
+            "الكاميرا."
+        ],
+        "correctAnswer": "لوحة المفاتيح."
+    },
+    {
+        "question": "ما هو نوع وحدة الإخراج التي تستخدم لعرض الصور ",
+        "choices": [
+            "الشاشة.",
+            "الطابعة.",
+            "السماعات.",
+            "مكبر الصوت."
+        ],
+        "correctAnswer": "الشاشة."
+    },
+    {
+        "question": "ما هو نوع وحدة الإدخال التي تستخدم لإدخال الصوت ",
+        "choices": [
+            "لوحة المفاتيح.",
+            "الفأرة.",
+            "الماسح الضوئي.",
+            "الميكروفون."
+        ],
+        "correctAnswer": "الميكروفون."
+    },
+    {
+        "question": "ما هو نوع وحدة الإخراج التي تستخدم لسماع الموسيقى ",
+        "choices": [
+            "الشاشة.",
+            "الطابعة.",
+            "السماعات.",
+            "مكبر الصوت."
+        ],
+        "correctAnswer": "السماعات."
+    },
+    {
+        "question": "ما هو نوع وحدة الإدخال التي تستخدم لمسح الصور ",
+        "choices": [
+            "لوحة المفاتيح.",
+            "الفأرة.",
+            "الماسح الضوئي.",
+            "الكاميرا."
+        ],
+        "correctAnswer": "الماسح الضوئي."
+    },
+    {
+        "question": "ما هو نوع وحدة الإخراج التي تستخدم لطباعة المستندات ",
+        "choices": [
+            "الشاشة.",
+            "الطابعة.",
+            "السماعات.",
+            "مكبر الصوت."
+        ],
+        "correctAnswer": "الطابعة."
+    },
+    {
+        "question": "ما هو نوع وحدة الإدخال التي تستخدم لالتقاط الصور ",
+        "choices": [
+            "لوحة المفاتيح.",
+            "الفأرة.",
+            "الماسح الضوئي.",
+            "الكاميرا."
+        ],
+        "correctAnswer": "الكاميرا."
+    },
+{
+  "question": "ما هي أفضل طريقة للحفظ في ملف إكسيل ",
+  "choices": [
+    "استخدام اختصار لوحة المفاتيح Ctrl + S.",
+    "استخدام زر 'حفظ' في شريط الأدوات.",
+    "استخدام خيار 'حفظ باسم' من قائمة 'ملف'.",
+    "جميع الخيارات أعلاه."
+  ],
+  "correctAnswer": "جميع الخيارات أعلاه."
+},
+{
+  "question": "ما هي المنصة التي لا تعد من منصات التواصل الاجتماعي ",
+  "choices": [
+    "فيسبوك",
+    "تويتر",
+    "انستجرام",
+    "ويكيبيديا"
+  ],
+  "correctAnswer": "ويكيبيديا"
+},
+        
+ 
+        ];
+
+        // قم بترتيب الأسئلة بشكل عشوائي
+        shuffleArray(quizData);
+
+        function shuffleArray(array) {
+            for (var i = array.length - 1; i > 0; i--) {
+                var j = Math.floor(Math.random() * (i + 1));
+                var temp = array[i];
+                array[i] = array[j];
+                array[j] = temp;
+            }
+            return array;
+        }
+
+        function loadQuestion() {
+            var currentQuiz = quizData[currentQuestion];
+
+            var questionImageElement = document.getElementById('question-image');
+            var choicesElement = document.getElementById('choices');
+
+            if (currentQuiz.imageSrc) {
+                questionImageElement.src = currentQuiz.imageSrc; // تعيين مصدر الصورة
+                questionImageElement.style.display = 'block'; // عرض الصورة
+            } else {
+                questionImageElement.style.display = 'none'; // إخفاء الصورة إذا لم تكن متاحة
+            }
+
+            choicesElement.innerHTML = '';
+
+            // عرض السؤال كنص عادي إذا لم يكن هناك صورة
+            if (!currentQuiz.imageSrc) {
+                choicesElement.innerHTML += '<p>' + currentQuiz.question + '</p>';
+            }
+
+            for (var i = 0; i < currentQuiz.choices.length; i++) {
+                var choice = currentQuiz.choices[i];
+                choicesElement.innerHTML += '<label><input type="radio" name="choice" value="' + choice + '"> ' + choice + '</label>';
+            }
+
+            startTimer(); // بدء الموقت عند تحميل كل سؤال
+        }
+
+        function startTimer() {
+            timerInterval = setInterval(function () {
+                document.getElementById('timer').innerHTML = 'Time Left: ' + timeLeft + 's';
+
+                if (timeLeft === 0) {
+                    clearInterval(timerInterval);
+                    alert('Time is up!'); // عرض رسالة انتهاء الوقت
+                    showResult(); // عرض النتيجة النهائية عند انتهاء الوقت
+                } else {
+                    timeLeft--;
+                }
+            }, 1000);
+        }
+
+        function checkAnswer() {
+            var selectedOption = document.querySelector('input[name="choice"]:checked');
+            if (!selectedOption) {
+                alert('Please select an answer.');
+                return;
+            }
+
+            var userAnswer = selectedOption.value;
+            var currentQuiz = quizData[currentQuestion];
+
+            var choicesLabels = document.querySelectorAll('label');
+
+            for (var i = 0; i < choicesLabels.length; i++) {
+                if (currentQuiz.correctAnswer === currentQuiz.choices[i]) {
+                    choicesLabels[i].classList.add('correct');
+                } else {
+                    choicesLabels[i].classList.add('incorrect');
+                }
+            }
+
+            if (userAnswer === currentQuiz.correctAnswer) {
+                score++;
+                document.getElementById('score').textContent = score;
+            }
+
+            clearInterval(timerInterval); // قبل التحقق من الإجابة، قم بإيقاف الموقت
+
+            currentQuestion++;
+
+            if (currentQuestion < quizData.length) {
+                setTimeout(function () {
+                    loadQuestion();
+                    resetColors();
+                }, 3000);
+            } else {
+                showResult();
+            }
+        }
+
+        function showResult() {
+            var resultElement = document.getElementById('result');
+            var correctAnswersElement = document.getElementById('correct-answers');
+
+            resultElement.innerHTML = 'Your Score: ' + score + ' out of ' + quizData.length;
+
+            correctAnswersElement.innerHTML = '<h3>Correct Answers:</h3>';
+            for (var i = 0; i < quizData.length; i++) {
+                var q = quizData[i];
+                var imgSrc = q.imageSrc;
+                var imgElement = '<img src="' + imgSrc + '" alt="Question Image">';
+                correctAnswersElement.innerHTML += imgElement + '<strong>Q: ' + q.question + '</strong><br>A: ' + q.correctAnswer + '<br>';
+            }
+
+            document.getElementById('result-container').style.display = 'block';
+            document.getElementById('retryBtn').style.display = 'block';
+        }
+
+        function resetColors() {
+            var choicesLabels = document.querySelectorAll('label');
+            for (var i = 0; i < choicesLabels.length; i++) {
+                choicesLabels[i].classList.remove('correct', 'incorrect'); // إزالة الأنماط المضافة سابقًا
+            }
+        }
+
+        function retryQuiz() {
+            currentQuestion = 0;
+            score = 0;
+            timeLeft = 600; // إعادة تعيين الوقت للقيمة الأصلية
+
+            // قم بترتيب الأسئلة بشكل عشوائي عند إعادة المحاولة
+            shuffleArray(quizData);
+
+            document.getElementById('score').textContent = score; // تحديث قيمة العداد إلى الصفر
+            loadQuestion();
+            resetColors();
+
+            document.getElementById('result-container').style.display = 'none';
+            document.getElementById('retryBtn').style.display = 'none';
+        }
+
+        loadQuestion();
+    </script>
+
+</body>
+
+</html>
